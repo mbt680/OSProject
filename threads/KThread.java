@@ -293,7 +293,7 @@ public class KThread {
 
 		boolean intStatus = Machine.interrupt().disable();
 
-		if (parentThread != currentThread && status == statusFinished) {
+		if (parentThread != null || status == statusFinished) {
 			Machine.interrupt().restore(intStatus);
 			return;
 		} else {
