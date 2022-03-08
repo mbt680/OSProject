@@ -203,7 +203,8 @@ public class KThread {
 		Lib.assertTrue(toBeDestroyed == null);
 		toBeDestroyed = currentThread;
 
-		currentThread.parentThread.ready();
+		if (currentThread.parentThread != null)
+			currentThread.parentThread.ready();
 
 		currentThread.status = statusFinished;
 
@@ -289,11 +290,19 @@ public class KThread {
 	public void join() {
 		Lib.debug(dbgThread, "Joining to thread: " + toString());
 
-		Lib.assertTrue(this != currentThread);
+		if (this == currentThread) {
+			System.out.println("Join calling self");
+			return;
+		}
 
 		boolean intStatus = Machine.interrupt().disable();
 
-		if (parentThread != null || status == statusFinished) {
+		if (status == statusFinished) {
+			System.out.println("Thread has terminated already");
+			Machine.interrupt().restore(intStatus);
+			return;
+		} else if (parentThread != null) {
+			System.out.println("Join already called on this thread");
 			Machine.interrupt().restore(intStatus);
 			return;
 		} else {
@@ -429,10 +438,43 @@ public class KThread {
 	 * Tests whether this module is working.
 	 */
 	public static void selfTest() {
-		Lib.debug(dbgThread, "Enter KThread.selfTest");
+		System.out.println("Join Test Start");
 
-		new KThread(new PingTest(1)).setName("forked thread").fork();
-		new PingTest(0).run();
+		// Makes two threads for testing
+		KThread thread1 = new KThread(new TestThread());
+		KThread thread2 = new KThread(new TestThread());
+
+		// Basic test
+		System.out.println("Thread called");
+		thread1.fork();
+		thread1.join();
+		System.out.println("Thread done");
+
+		// Joining thread to self
+		System.out.println("Calling self");
+		KThread.currentThread.join();
+
+		// Try to join a second time
+		System.out.println("Calling Thread twice");
+		thread2.fork();
+		thread2.join();
+		thread2.join();
+
+		System.out.println("------------------------------------------------------");
+		System.out.println("Calling 50 threads");
+		// Test 50 threads
+		KThread[] threads = new KThread[50];
+
+		for (int i = 0; i < 50; ++i) {
+			threads[i] = new KThread(new TestThread());
+		}
+
+		for (int i = 0; i < 50; ++i) {
+			threads[i].fork();
+			threads[i].join();
+		}
+
+		System.out.println("Join Test End");
 	}
 
 	private static final char dbgThread = 't';

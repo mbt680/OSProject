@@ -1,6 +1,7 @@
 package nachos.threads;
 
 import java.util.PriorityQueue;
+import java.lang.Comparable;
 
 import nachos.machine.*;
 
@@ -10,7 +11,7 @@ import nachos.machine.*;
  */
 public class Alarm {
 
-	private class WaitKThread {
+	private class WaitKThread implements Comparable<WaitKThread> {
 		public long wake;
 		public KThread thread;
 
@@ -26,6 +27,29 @@ public class Alarm {
 
 	private PriorityQueue<WaitKThread> queue;
 	private Lock alarmLock;
+
+	public static void selfTest() {
+		System.out.println("Alarm Test Start");
+
+		// Test -500, 0, and 500
+		KThread threadSet = new KThread(new SetWaitThread());
+		threadSet.fork();
+		threadSet.join();
+
+		// Test 50 threads with 5000 wait times
+		KThread[] threads = new KThread[50];
+
+		for (int i = 0; i < 50; ++i) {
+			threads[i] = new KThread(new RandomWaitThread());
+			threads[i].fork();
+		}
+
+		for (int i = 0; i < 50; ++i) {
+			threads[i].join();
+		}
+
+		System.out.println("Alarm Test End");
+	}
 
 	/**
 	 * Allocate a new Alarm. Set the machine's timer interrupt handler to this
@@ -52,14 +76,19 @@ public class Alarm {
 	 * should be run.
 	 */
 	public void timerInterrupt() {
+
+		if (queue.peek() != null)
+			System.out.println("Next at " + queue.peek().wake + "/"
+					+ Machine.timer().getTime());
+
 		boolean intStatus = Machine.interrupt().disable();
-		
-		while(queue.peek()!= null && queue.peek().wake <= Machine.timer().getTime())
-		{
+
+		while (queue.peek() != null
+				&& queue.peek().wake <= Machine.timer().getTime()) {
 			WaitKThread nextthread = queue.poll();
 			nextthread.thread.ready();
 		}
-		
+
 		Machine.interrupt().restore(intStatus);
 		KThread.currentThread().yield();
 	}
