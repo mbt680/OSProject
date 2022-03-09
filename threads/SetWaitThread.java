@@ -10,8 +10,8 @@ public class SetWaitThread implements Runnable {
         ThreadedKernel.alarm.waitUntil(0);
         System.out.println("Returned");
         
-        System.out.println("Calling 500000");
-        ThreadedKernel.alarm.waitUntil(500000);
+        System.out.println("Calling 5000");
+        ThreadedKernel.alarm.waitUntil(5000);
         System.out.println("Returned");
 	}
 }

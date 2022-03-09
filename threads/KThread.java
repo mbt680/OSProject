@@ -298,7 +298,6 @@ public class KThread {
 		boolean intStatus = Machine.interrupt().disable();
 
 		if (status == statusFinished) {
-			System.out.println("Thread has terminated already");
 			Machine.interrupt().restore(intStatus);
 			return;
 		} else if (parentThread != null) {
