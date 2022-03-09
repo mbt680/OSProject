@@ -53,6 +53,9 @@ public class Communicator {
 		if (listners == 0)
 			waitspeak.sleep();
 
+		while(messagewaiting)
+			waitspeak.sleep();
+		
 		System.out.println("Giving" + word);
 		
 		messagewaiting = true;
@@ -71,13 +74,9 @@ public class Communicator {
 	public int listen() {
 		lock.acquire();
 
-
-		System.out.println("listening");
+        System.out.println("listening");
 		
 		++listners;
-
-		if(messagewaiting)
-			waitlisten.sleep();
 		
 		waitspeak.wake();
 
@@ -93,6 +92,9 @@ public class Communicator {
 
 		int temp = message;
 
+		if(listners > 0)
+			waitspeak.wake();
+		
 		lock.release();
 		return temp;
 	}
@@ -194,7 +196,7 @@ public class Communicator {
 		
 		
 
-		/*test1A.fork();
+		test1A.fork();
 		test1B.fork();
 		test1A.join();
 		test1B.join();
@@ -211,7 +213,7 @@ public class Communicator {
 		test3A.join();
 		test3B.join();
 		test3C.join();
-		test3D.join();*/
+		test3D.join();
 		
 		test4A.fork();
 		test4B.fork();

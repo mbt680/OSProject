@@ -46,11 +46,11 @@ public class ThreadedKernel extends Kernel {
 	 * here.
 	 */
 	public void selfTest() {
-		KThread.selfTest();
-		Condition2.selfTest();
-		Alarm.selfTest();
+		//KThread.selfTest();
+		//Condition2.selfTest();
+		//Alarm.selfTest();
 		Communicator.selfTest();
-		ReactWater.selfTest();
+		//ReactWater.selfTest();
 
 		System.out.println("No errors were found");
 		if (Machine.bank() != null) {
