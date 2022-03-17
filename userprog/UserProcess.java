@@ -357,6 +357,39 @@ public class UserProcess {
 	}
 
 	/**
+	 * 
+	 * Turns a int name into string name
+	 */
+	private String GetFileName(int name) {
+		byte[] data = new byte[256];
+
+		int datalength = readVirtualMemory(name, data);
+
+		for (int i = 0; i < datalength; ++i)
+			if (data[i] == 0) {
+				return new String(data, 0, i);
+			}
+
+		return null;
+	}
+	
+	/**
+	 * adds a file into an empty slot in the fileSystem
+	 */
+	private int AddFileToSystem(OpenFile file, String name) {
+		if (file == null)
+			return -1;
+		else {
+			for (int i = 0; i < 256; ++i)
+				if (fileSystem[i].file == null) {
+					fileSystem[i] = new FileWraper(name, file, 0);
+					return i;
+				}
+		}
+		return -1;
+	}
+
+	/**
 	 * Handle the halt() system call.
 	 */
 	private int handleHalt() {
@@ -374,37 +407,23 @@ public class UserProcess {
 	 * @return
 	 */
 	private int handleCreate(int name) {
-		String sname = null;
+		String filename = GetFileName(name);
 
-		byte[] data = new byte[256];
-
-		int datalength = readVirtualMemory(name, data);
-
-		for (int i = 0; i < datalength; ++i)
-			if (data[i] == 0) {
-				sname = new String(data, 0, i);
-				break;
-			}
-
-		if (sname == null)
-			sname = new String(data, 0, 256);
-
-		OpenFile file = UserKernel.fileSystem.open(sname, true);
-
-		if (file == null)
+		if (filename == null)
 			return -1;
-		else {
-			for (int i = 0; i < 256; ++i)
-				if (fileSystem[i].file == null) {
-					fileSystem[i] = new FileWraper(sname, file, 0);
-					return i;
-				}
-		}
-		return -1;
+
+		return AddFileToSystem(UserKernel.fileSystem.open(filename, true),
+				filename);
 	}
 
-	private int handleOpen() {
-		return 0;
+	private int handleOpen(int name) {
+		String filename = GetFileName(name);
+
+		if (filename == null)
+			return -1;
+
+		return AddFileToSystem(UserKernel.fileSystem.open(filename, false),
+				filename);
 	}
 
 	private int handleRead() {
@@ -503,7 +522,7 @@ public class UserProcess {
 			return handleCreate(a0);
 
 		case syscallOpen:
-			return handleOpen();
+			return handleOpen(a0);
 
 		case syscallRead:
 			return handleRead();
