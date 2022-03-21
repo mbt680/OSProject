@@ -372,7 +372,7 @@ public class UserProcess {
 
 		return null;
 	}
-	
+
 	/**
 	 * adds a file into an empty slot in the fileSystem
 	 */
@@ -426,19 +426,84 @@ public class UserProcess {
 				filename);
 	}
 
-	private int handleRead() {
-		return 0;
+	private int handleRead(int fileDiscriptor, int buffer, int count) {
+		byte[] dataBytes = new byte[256];
+
+		if (fileDiscriptor > 256 || fileDiscriptor < 0
+				|| fileSystem[fileDiscriptor] == null)
+			return -1;
+
+		FileWraper currentFile = fileSystem[fileDiscriptor];
+
+		int data = currentFile.file.read(currentFile.location, dataBytes, 0,
+				count);
+
+		if (data < 0)
+			return -1;
+
+		currentFile.location += writeVirtualMemory(data, dataBytes);
+
+		return data;
 	}
 
-	private int handleWrite() {
-		return 0;
+	private int handleWrite(int fileDiscriptor, int buffer, int count) {
+		byte[] dataBytes = new byte[256];
+
+		if (fileDiscriptor > 256 || fileDiscriptor < 0
+				|| fileSystem[fileDiscriptor] == null)
+			return -1;
+
+		FileWraper currentFile = fileSystem[fileDiscriptor];
+
+		int data = readVirtualMemory(buffer, dataBytes);
+
+		int pos = currentFile.file.write(currentFile.location, dataBytes, 0,
+				data);
+
+		if (pos < 0)
+			return -1;
+
+		currentFile.location += pos;
+
+		return pos;
 	}
 
-	private int handleClose() {
-		return 0;
+	private int handleClose(int fileDiscriptor) {
+		boolean fileRemoved = true;
+
+		if (fileDiscriptor > 256 || fileDiscriptor < 0)
+			return -1;
+
+		fileSystem[fileDiscriptor].file.close();
+
+		if (fileSystem[fileDiscriptor].delete)
+			fileRemoved = UserKernel.fileSystem
+					.remove(fileSystem[fileDiscriptor].name);
+
+		fileSystem[fileDiscriptor] = new FileWraper();
+		;
+
+		if (fileRemoved)
+			return 0;
+		return -1;
 	}
 
-	private int handleUnlink() {
+	private int handleUnlink(int name) {
+
+		String fileName = GetFileName(name);
+
+		int fileLocation = -1;
+
+		for (int i = 0; i < 256; ++i)
+			if (fileName.equals(fileSystem[i].toString())) {
+				fileLocation = i;
+				break;
+			}
+
+		if (fileLocation == -1)
+			return UserKernel.fileSystem.remove(fileName) ? 0 : -1;
+
+		fileSystem[fileLocation].delete = true;
 		return 0;
 	}
 
@@ -525,16 +590,16 @@ public class UserProcess {
 			return handleOpen(a0);
 
 		case syscallRead:
-			return handleRead();
+			return handleRead(a0, a1, a2);
 
 		case syscallWrite:
-			return handleWrite();
+			return handleWrite(a0, a1, a2);
 
 		case syscallClose:
-			return handleClose();
+			return handleClose(a0);
 
 		case syscallUnlink:
-			return handleUnlink();
+			return handleUnlink(a0);
 
 		default:
 			Lib.debug(dbgProcess, "Unknown syscall " + syscall);
@@ -590,11 +655,13 @@ public class UserProcess {
 			name = s;
 			file = f;
 			location = i;
+			delete = false;
 		}
 
 		public String name;
 		public OpenFile file;
 		public int location;
+		public boolean delete;
 	}
 
 	// List of all files currently open
